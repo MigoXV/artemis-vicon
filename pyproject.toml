@@ -1,0 +1,32 @@
+[project]
+name = "artemis-vicon"
+version = "0.1.0"
+description = "自动行驶小车控制客户端服务"
+authors = [
+    {name = "migo", email = "1695587905@qq.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "grpcio (>=1.80.0,<2.0.0)",
+    "numpy (<2.3)",
+    "protobuf (>=7.34.1,<8.0.0)",
+    "pyserial (>=3.5,<4.0)",
+    "scipy (<1.17)",
+    "typer (>=0.24.1,<0.25.0)"
+]
+
+[project.scripts]
+artemis-vicon = "artemis_vicon.commands.app:app"
+
+[tool.poetry]
+packages = [{include = "artemis_vicon", from = "src"}]
+
+[[tool.poetry.source]]
+name = "tuna"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+priority = "primary"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

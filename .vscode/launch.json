@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: App Module",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "artemis_vicon.commands.app",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "envFile": "${workspaceFolder}/.env",
+            "args": []
+        }
+    ]
+}
