@@ -1,13 +1,16 @@
 # Artemis Vicon
 
-`artemis-vicon` 是自动行驶小车的独立控制客户端服务。仿真服务由 `artemis-mudri` 提供，本项目负责连接仿真服务、运行循线控制器，并通过 gRPC 流回传左右电机驱动板命令。
+`artemis-vicon` 是 `artemis-m0` 小车控制逻辑的 Python/gRPC 客户端。仿真服务由 `artemis-mudri` 提供，本项目负责接收仿真观测帧，按 m0 任务语义计算 `Velocity`、`Turn`、左右后轮目标速度和电机模式，再通过 gRPC 流回传控制命令。
 
-## 功能内容
+## 功能
 
-- `artemis_vicon.control` 提供 PID、PD、LQR 循线控制器和混合任务状态机。
-- `artemis_vicon.services` 负责 gRPC 仿真服务连接与流式编排。
-- `artemis_vicon.domain` 保存电机命令映射等领域对象。
-- 使用 Typer 提供标准 CLI 入口。
+- `artemis_vicon.controllers` 提供通用 PID 控制算法。
+- `artemis_vicon.schemas` 保存观测帧、控制命令、任务动作和电机模式等数据结构。
+- `artemis_vicon.vehicle` 提供 8 路循迹、Yaw 航向保持、动作状态机和左右后轮命令合成等小车业务控制器。
+- `artemis_vicon.client` 封装 gRPC 客户端，负责连接仿真服务、维护双向流、转换观测帧和控制命令。
+- `artemis_vicon.commands.app` 提供 Typer CLI 入口。
+- `artemis_vicon.protos.simulation.v1` 保存和 `artemis-mudri` 对接的 protobuf 定义及生成代码。
+- `examples/m0` 保存 artemis-m0 task0-4 的 JSON 动作序列。
 - 保留 `pyserial` 依赖，供后续接入真实电机驱动板串口协议。
 
 ## 安装
@@ -16,34 +19,53 @@
 poetry install
 ```
 
+## 生成 Proto 代码
+
+```bash
+bash scripts/run_grpcio_tools.sh
+```
+
+脚本会使用 Poetry 环境运行 `grpcio-tools`，并生成 `*_pb2.py`、`*_pb2.pyi`、`*_pb2_grpc.py` 和 `*_pb2_grpc.pyi`。
+
 ## 运行
 
 先在 `artemis-mudri` 中启动仿真服务：
 
 ```bash
-poetry run python -m artemis_mudri.commands.app serve --host 127.0.0.1 --port 50051 --task 1 --no-render
+poetry run python -m artemis_mudri.commands.app serve --host 127.0.0.1 --port 50051 --no-render
+```
+
+如需启用服务端现实噪声，在 `artemis-mudri` 中通过 `--noise-config` 指定噪声配置：
+
+```bash
+poetry run python -m artemis_mudri.commands.app serve \
+  --host 127.0.0.1 \
+  --port 50051 \
+  --no-render \
+  --noise-config exampes/configs/noise/weak.yaml
 ```
 
 再在本项目中启动客户端：
 
 ```bash
-poetry run python -m artemis_vicon.commands.app --target 127.0.0.1:50051 --task 1 --controller pid
+poetry run python -m artemis_vicon.commands.app 127.0.0.1:50051 examples/m0/task1.json --seed 7
 ```
 
 也可以使用脚本入口：
 
 ```bash
-poetry run artemis-vicon --target 127.0.0.1:50051 --task 1 --controller pid
+poetry run artemis-vicon 127.0.0.1:50051 examples/m0/task1.json --seed 7
 ```
 
 ## 配置
 
-- `ARTEMIS_SIM_TARGET`：仿真服务地址。
-- `ARTEMIS_TASK`：任务编号。
-- `ARTEMIS_LINE_FOLLOW_CONTROLLER`：循线控制器，可选 `pid`、`pd`、`lqr`。
+- `ARTEMIS_SIM_TARGET`：仿真服务地址，默认 `127.0.0.1:50051`。
+- `ARTEMIS_TASK_PATH`：本地任务动作 JSON 文件路径，默认 `examples/m0/task1.json`；该值不会发送给仿真服务。
 - `ARTEMIS_MAX_TIME_S`：任务时间上限。
-- `ARTEMIS_CONTROL_PERIOD_S`：控制周期。
-- `ARTEMIS_SPEED_SCALE`：速度倍率。
+- `ARTEMIS_CONTROL_PERIOD_S`：控制周期，默认 `0.02` 秒。
+- `ARTEMIS_RANDOM_SEED`：传给服务端用于 episode/noise 复现的随机种子。
+
+噪声参数不再由 `artemis-vicon` 通过 gRPC 请求单独指定。新版 `artemis-mudri` 统一在服务端通过 `--noise-config` 或 `ARTEMIS_NOISE_CONFIG` 加载初始位姿、巡线传感器、IMU、编码器和执行器噪声配置；客户端只发送 seed、控制周期、时间上限和控制命令。
 
 ## 测试
 

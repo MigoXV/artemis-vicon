@@ -1,0 +1,229 @@
+syntax = "proto3";
+
+package artemis_mudri.simulation.v1;
+
+// 自动行驶小车仿真的双向流式服务。
+service VehicleSimulationService {
+  // 运行一次仿真 episode。
+  //
+  // 客户端首条消息必须是 StartEpisodeRequest；episode 运行期间，客户端持续发送
+  // VehicleControlCommand 推进仿真，也可以发送 StopEpisodeRequest 主动结束。
+  // 服务端会先返回 EpisodeStarted，再返回若干 ObservationFrame，最终返回
+  // EpisodeFinished 或 SimulationError。
+  rpc StreamEpisode(stream ClientMessage) returns (stream ServerMessage);
+}
+
+// 电机控制模式，对齐 artemis-m0 中 pid_mode_t 的语义。
+enum MotorMode {
+  MOTOR_MODE_STOP = 0;
+  MOTOR_MODE_SPEED = 1;
+  MOTOR_MODE_DIR = 2;
+  MOTOR_MODE_TRACK = 3;
+  MOTOR_MODE_DEG = 4;
+}
+
+// 客户端发往仿真服务的流式消息。
+message ClientMessage {
+  oneof payload {
+    // 启动 episode 的请求，必须作为流中的第一条消息发送。
+    StartEpisodeRequest start = 1;
+    // 固件控制层输出的速度目标命令，用于推进一段控制周期。
+    VehicleControlCommand control_command = 2;
+    // 主动停止当前 episode 的请求。
+    StopEpisodeRequest stop = 3;
+  }
+}
+
+// 启动一次仿真 episode 的参数。
+message StartEpisodeRequest {
+  // 是否打开 MuJoCo 可视化窗口。
+  bool render = 1;
+  // 本次 episode 的最大仿真时长，单位秒；0 表示使用服务端默认时间上限。
+  double max_time_s = 2;
+  // 控制周期，单位秒；0 表示使用仿真后端默认步长。
+  double control_period_s = 3;
+  // 初始航向扰动随机种子；不设置时服务端使用确定性默认。
+  optional uint64 random_seed = 4;
+}
+
+// 固件控制层输出的车辆控制命令。
+message VehicleControlCommand {
+  // 客户端侧命令序号，用于排查丢包、乱序或日志对齐。
+  uint64 sequence_id = 1;
+  // C 端全局 Velocity 变量，单位为编码器脉冲/20ms。
+  double velocity = 2;
+  // C 端全局 Turn 变量，单位为编码器脉冲/20ms 的差速修正量。
+  double turn = 3;
+  // 后左电机目标速度，单位为编码器脉冲/20ms。
+  double rear_left_target_speed = 4;
+  // 后右电机目标速度，单位为编码器脉冲/20ms。
+  double rear_right_target_speed = 5;
+  // 后左电机控制模式。
+  MotorMode rear_left_mode = 6;
+  // 后右电机控制模式。
+  MotorMode rear_right_mode = 7;
+}
+
+// 客户端主动停止 episode 的请求。
+message StopEpisodeRequest {
+  // 停止原因；为空时服务端使用默认原因。
+  string reason = 1;
+}
+
+// 服务端发回客户端的流式消息。
+message ServerMessage {
+  oneof payload {
+    // episode 已启动并返回运行参数。
+    EpisodeStarted started = 1;
+    // 仿真观测帧。
+    ObservationFrame observation = 2;
+    // episode 已结束并返回汇总结果。
+    EpisodeFinished finished = 3;
+    // episode 执行失败或请求不合法。
+    SimulationError error = 4;
+  }
+}
+
+// episode 启动后的运行参数。
+message EpisodeStarted {
+  // 服务端默认时间上限，单位秒。
+  double time_limit_s = 1;
+  // 本次 episode 实际采用的控制周期，单位秒。
+  double control_period_s = 2;
+}
+
+// 单帧仿真观测数据。
+message ObservationFrame {
+  // 服务端观测序号，随仿真步进递增。
+  uint64 sequence_id = 1;
+  // 当前仿真时间，单位秒。
+  double sim_time_s = 2;
+  // 巡线传感器观测。
+  LineSensorFrame line_sensor = 3;
+  // IMU 航向观测。
+  ImuFrame imu = 4;
+  // 当前路径完成进度。
+  PathProgressFrame path_progress = 5;
+  // 编码器与里程观测。
+  EncoderFrame encoder = 6;
+  // 电机速度环调试状态。
+  MotorDebugFrame motor_debug = 7;
+}
+
+// 巡线传感器阵列的一帧观测。
+message LineSensorFrame {
+  // 每个传感器的数字读数，通常 0 表示未检测到黑线、1 表示检测到黑线。
+  repeated int32 digital_values = 1;
+  // 每个传感器的黑度模拟值，顺序与 digital_values 一致。
+  repeated double darkness = 2;
+  // 当前是否检测到有效线路。
+  bool line_detected = 3;
+  // C 端循迹权重，顺序与 digital_values 一致。
+  repeated int32 weights = 4;
+  // C 端 new_error，未检测到线路时保持上一帧误差。
+  double error = 5;
+  // 线路相对车体中心的横向偏差，单位米；未检测到线路时不设置。
+  optional double lateral_error_m = 6;
+}
+
+// IMU 航向观测。
+message ImuFrame {
+  // 车体偏航角，单位度，范围 [0, 360)。
+  double yaw_deg = 1;
+  // 车体偏航角速度，单位度/秒。
+  double yaw_rate_deg_s = 2;
+}
+
+// 编码器与里程观测，对齐 artemis-m0 的 20ms 控制 tick。
+message EncoderFrame {
+  // 后左电机本 tick 编码器脉冲。
+  double rear_left_pulses = 1;
+  // 后右电机本 tick 编码器脉冲。
+  double rear_right_pulses = 2;
+  // 后左电机累计脉冲。
+  double rear_left_total_pulses = 3;
+  // 后右电机累计脉冲。
+  double rear_right_total_pulses = 4;
+  // 后左电机测量速度，单位为脉冲/20ms。
+  double rear_left_measure_speed = 5;
+  // 后右电机测量速度，单位为脉冲/20ms。
+  double rear_right_measure_speed = 6;
+  // 按 CM_TO_PULSE 估算的前进距离，单位 cm。
+  double forward_distance_cm = 7;
+}
+
+// 电机速度环调试状态。
+message MotorDebugFrame {
+  double rear_left_target_speed = 1;
+  double rear_right_target_speed = 2;
+  double rear_left_pid_output = 3;
+  double rear_right_pid_output = 4;
+  double rear_left_pwm = 5;
+  double rear_right_pwm = 6;
+  MotorMode rear_left_mode = 7;
+  MotorMode rear_right_mode = 8;
+}
+
+// 路径与事件完成进度。
+message PathProgressFrame {
+  // 当前所在路径段索引。
+  uint32 active_segment_index = 1;
+  // 已完成事件数量。
+  uint32 completed_event_count = 2;
+  // 已完成事件名称列表。
+  repeated string completed_events = 3;
+  // 是否已到达路径终点。
+  bool reached_goal = 4;
+}
+
+// episode 结束消息。
+message EpisodeFinished {
+  // 本次 episode 的汇总统计。
+  SimulationSummary summary = 1;
+  // 结束原因，例如 goal_reached、time_limit、client_stopped 或 viewer_closed。
+  string reason = 2;
+}
+
+// 服务端错误消息。
+message SimulationError {
+  // 错误说明。
+  string message = 1;
+}
+
+// episode 汇总统计。
+message SimulationSummary {
+  // 是否到达路径终点。
+  bool reached_goal = 1;
+  // 实际经过的仿真时间，单位秒。
+  double elapsed_time_s = 2;
+  // 路径总长度，单位米。
+  double route_length_m = 3;
+  // 最大横向路径误差，单位米。
+  double max_cross_track_error_m = 4;
+  // 横向路径误差均方根，单位米。
+  double rms_cross_track_error_m = 5;
+  // episode 结束时的车体位姿。
+  Pose2D final_pose = 6;
+  // episode 中记录到的路径事件。
+  repeated SimulationEvent events = 7;
+}
+
+// 仿真过程中记录的路径事件。
+message SimulationEvent {
+  // 事件名称。
+  string name = 1;
+  // 事件发生时的仿真时间，单位秒。
+  double timestamp_s = 2;
+  // 事件对应的路径采样点或路径段索引。
+  uint32 path_index = 3;
+}
+
+// 二维平面位姿。
+message Pose2D {
+  // 世界坐标系下的 x 坐标，单位米。
+  double x_m = 1;
+  // 世界坐标系下的 y 坐标，单位米。
+  double y_m = 2;
+  // 世界坐标系下的偏航角，单位弧度。
+  double yaw_rad = 3;
+}
