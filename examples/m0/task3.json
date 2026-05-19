@@ -1,0 +1,10 @@
+{
+  "actions": [
+    {"kind": "drive_until_line", "yaw_offset_deg": -38.659808254090095, "max_duration_s": 5.0},
+    {"kind": "track_until_lost", "max_duration_s": 8.0},
+    {"kind": "turn_settle", "yaw_offset_deg": -141.3401917459099, "duration_s": 1.2},
+    {"kind": "drive_until_line", "yaw_offset_deg": -141.3401917459099, "max_duration_s": 5.0},
+    {"kind": "track_until_lost", "max_duration_s": 8.0},
+    {"kind": "finish"}
+  ]
+}

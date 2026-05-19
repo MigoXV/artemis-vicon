@@ -1,0 +1,12 @@
+{
+  "actions": [
+    {"kind": "drive_distance", "yaw_offset_deg": 0.0, "distance_cm": 100.0},
+    {"kind": "turn_settle", "yaw_offset_deg": -90.0, "duration_s": 1.2},
+    {"kind": "drive_distance", "yaw_offset_deg": -90.0, "distance_cm": 70.0},
+    {"kind": "turn_settle", "yaw_offset_deg": -180.0, "duration_s": 1.2},
+    {"kind": "drive_distance", "yaw_offset_deg": -180.0, "distance_cm": 100.0},
+    {"kind": "turn_settle", "yaw_offset_deg": -270.0, "duration_s": 1.2},
+    {"kind": "drive_distance", "yaw_offset_deg": -270.0, "distance_cm": 70.0},
+    {"kind": "finish"}
+  ]
+}

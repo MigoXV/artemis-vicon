@@ -85,37 +85,29 @@ class StartEpisodeRequest(_message.Message):
 
     DESCRIPTOR: _descriptor.Descriptor
 
-    TASK_ID_FIELD_NUMBER: _builtins.int
     RENDER_FIELD_NUMBER: _builtins.int
     MAX_TIME_S_FIELD_NUMBER: _builtins.int
     CONTROL_PERIOD_S_FIELD_NUMBER: _builtins.int
     RANDOM_SEED_FIELD_NUMBER: _builtins.int
-    INITIAL_YAW_NOISE_DEG_FIELD_NUMBER: _builtins.int
-    task_id: _builtins.str
-    """任务编号；为空时由服务端使用默认任务。"""
     render: _builtins.bool
     """是否打开 MuJoCo 可视化窗口。"""
     max_time_s: _builtins.float
-    """本次 episode 的最大仿真时长，单位秒；0 表示使用任务默认时间上限。"""
+    """本次 episode 的最大仿真时长，单位秒；0 表示使用服务端默认时间上限。"""
     control_period_s: _builtins.float
     """控制周期，单位秒；0 表示使用仿真后端默认步长。"""
     random_seed: _builtins.int
     """初始航向扰动随机种子；不设置时服务端使用确定性默认。"""
-    initial_yaw_noise_deg: _builtins.float
-    """初始航向均匀扰动范围，单位度；0 表示不扰动。"""
     def __init__(
         self,
         *,
-        task_id: _builtins.str = ...,
         render: _builtins.bool = ...,
         max_time_s: _builtins.float = ...,
         control_period_s: _builtins.float = ...,
         random_seed: _builtins.int | None = ...,
-        initial_yaw_noise_deg: _builtins.float = ...,
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _typing.Literal["_random_seed", b"_random_seed", "random_seed", b"random_seed"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["_random_seed", b"_random_seed", "control_period_s", b"control_period_s", "initial_yaw_noise_deg", b"initial_yaw_noise_deg", "max_time_s", b"max_time_s", "random_seed", b"random_seed", "render", b"render", "task_id", b"task_id"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_random_seed", b"_random_seed", "control_period_s", b"control_period_s", "max_time_s", b"max_time_s", "random_seed", b"random_seed", "render", b"render"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     _WhichOneofReturnType__random_seed: _TypeAlias = _typing.Literal["random_seed"]  # noqa: Y015
     _WhichOneofArgType__random_seed: _TypeAlias = _typing.Literal["_random_seed", b"_random_seed"]  # noqa: Y015
@@ -203,7 +195,7 @@ class ServerMessage(_message.Message):
     ERROR_FIELD_NUMBER: _builtins.int
     @_builtins.property
     def started(self) -> Global___EpisodeStarted:
-        """episode 已启动并返回任务元信息。"""
+        """episode 已启动并返回运行参数。"""
 
     @_builtins.property
     def observation(self) -> Global___ObservationFrame:
@@ -237,37 +229,25 @@ Global___ServerMessage: _TypeAlias = ServerMessage  # noqa: Y015
 
 @_typing.final
 class EpisodeStarted(_message.Message):
-    """episode 启动后的任务元信息。"""
+    """episode 启动后的运行参数。"""
 
     DESCRIPTOR: _descriptor.Descriptor
 
-    TASK_ID_FIELD_NUMBER: _builtins.int
-    LABEL_FIELD_NUMBER: _builtins.int
-    DESCRIPTION_FIELD_NUMBER: _builtins.int
     TIME_LIMIT_S_FIELD_NUMBER: _builtins.int
     CONTROL_PERIOD_S_FIELD_NUMBER: _builtins.int
-    task_id: _builtins.str
-    """实际运行的任务编号。"""
-    label: _builtins.str
-    """任务展示名称。"""
-    description: _builtins.str
-    """任务说明。"""
     time_limit_s: _builtins.float
-    """任务默认时间上限，单位秒。"""
+    """服务端默认时间上限，单位秒。"""
     control_period_s: _builtins.float
     """本次 episode 实际采用的控制周期，单位秒。"""
     def __init__(
         self,
         *,
-        task_id: _builtins.str = ...,
-        label: _builtins.str = ...,
-        description: _builtins.str = ...,
         time_limit_s: _builtins.float = ...,
         control_period_s: _builtins.float = ...,
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["control_period_s", b"control_period_s", "description", b"description", "label", b"label", "task_id", b"task_id", "time_limit_s", b"time_limit_s"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["control_period_s", b"control_period_s", "time_limit_s", b"time_limit_s"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -283,7 +263,7 @@ class ObservationFrame(_message.Message):
     SIM_TIME_S_FIELD_NUMBER: _builtins.int
     LINE_SENSOR_FIELD_NUMBER: _builtins.int
     IMU_FIELD_NUMBER: _builtins.int
-    TASK_PROGRESS_FIELD_NUMBER: _builtins.int
+    PATH_PROGRESS_FIELD_NUMBER: _builtins.int
     ENCODER_FIELD_NUMBER: _builtins.int
     MOTOR_DEBUG_FIELD_NUMBER: _builtins.int
     sequence_id: _builtins.int
@@ -299,8 +279,8 @@ class ObservationFrame(_message.Message):
         """IMU 航向观测。"""
 
     @_builtins.property
-    def task_progress(self) -> Global___TaskProgressFrame:
-        """当前任务完成进度。"""
+    def path_progress(self) -> Global___PathProgressFrame:
+        """当前路径完成进度。"""
 
     @_builtins.property
     def encoder(self) -> Global___EncoderFrame:
@@ -317,13 +297,13 @@ class ObservationFrame(_message.Message):
         sim_time_s: _builtins.float = ...,
         line_sensor: Global___LineSensorFrame | None = ...,
         imu: Global___ImuFrame | None = ...,
-        task_progress: Global___TaskProgressFrame | None = ...,
+        path_progress: Global___PathProgressFrame | None = ...,
         encoder: Global___EncoderFrame | None = ...,
         motor_debug: Global___MotorDebugFrame | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["encoder", b"encoder", "imu", b"imu", "line_sensor", b"line_sensor", "motor_debug", b"motor_debug", "task_progress", b"task_progress"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal["encoder", b"encoder", "imu", b"imu", "line_sensor", b"line_sensor", "motor_debug", b"motor_debug", "path_progress", b"path_progress"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["encoder", b"encoder", "imu", b"imu", "line_sensor", b"line_sensor", "motor_debug", b"motor_debug", "sequence_id", b"sequence_id", "sim_time_s", b"sim_time_s", "task_progress", b"task_progress"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["encoder", b"encoder", "imu", b"imu", "line_sensor", b"line_sensor", "motor_debug", b"motor_debug", "path_progress", b"path_progress", "sequence_id", b"sequence_id", "sim_time_s", b"sim_time_s"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -494,24 +474,21 @@ class MotorDebugFrame(_message.Message):
 Global___MotorDebugFrame: _TypeAlias = MotorDebugFrame  # noqa: Y015
 
 @_typing.final
-class TaskProgressFrame(_message.Message):
-    """任务路径与事件完成进度。"""
+class PathProgressFrame(_message.Message):
+    """路径与事件完成进度。"""
 
     DESCRIPTOR: _descriptor.Descriptor
 
-    TASK_ID_FIELD_NUMBER: _builtins.int
     ACTIVE_SEGMENT_INDEX_FIELD_NUMBER: _builtins.int
     COMPLETED_EVENT_COUNT_FIELD_NUMBER: _builtins.int
     COMPLETED_EVENTS_FIELD_NUMBER: _builtins.int
     REACHED_GOAL_FIELD_NUMBER: _builtins.int
-    task_id: _builtins.str
-    """当前任务编号。"""
     active_segment_index: _builtins.int
     """当前所在路径段索引。"""
     completed_event_count: _builtins.int
     """已完成事件数量。"""
     reached_goal: _builtins.bool
-    """是否已到达任务终点。"""
+    """是否已到达路径终点。"""
     @_builtins.property
     def completed_events(self) -> _containers.RepeatedScalarFieldContainer[_builtins.str]:
         """已完成事件名称列表。"""
@@ -519,7 +496,6 @@ class TaskProgressFrame(_message.Message):
     def __init__(
         self,
         *,
-        task_id: _builtins.str = ...,
         active_segment_index: _builtins.int = ...,
         completed_event_count: _builtins.int = ...,
         completed_events: _abc.Iterable[_builtins.str] | None = ...,
@@ -527,11 +503,11 @@ class TaskProgressFrame(_message.Message):
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["active_segment_index", b"active_segment_index", "completed_event_count", b"completed_event_count", "completed_events", b"completed_events", "reached_goal", b"reached_goal", "task_id", b"task_id"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["active_segment_index", b"active_segment_index", "completed_event_count", b"completed_event_count", "completed_events", b"completed_events", "reached_goal", b"reached_goal"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___TaskProgressFrame: _TypeAlias = TaskProgressFrame  # noqa: Y015
+Global___PathProgressFrame: _TypeAlias = PathProgressFrame  # noqa: Y015
 
 @_typing.final
 class EpisodeFinished(_message.Message):
@@ -589,7 +565,6 @@ class SimulationSummary(_message.Message):
 
     DESCRIPTOR: _descriptor.Descriptor
 
-    TASK_ID_FIELD_NUMBER: _builtins.int
     REACHED_GOAL_FIELD_NUMBER: _builtins.int
     ELAPSED_TIME_S_FIELD_NUMBER: _builtins.int
     ROUTE_LENGTH_M_FIELD_NUMBER: _builtins.int
@@ -597,14 +572,12 @@ class SimulationSummary(_message.Message):
     RMS_CROSS_TRACK_ERROR_M_FIELD_NUMBER: _builtins.int
     FINAL_POSE_FIELD_NUMBER: _builtins.int
     EVENTS_FIELD_NUMBER: _builtins.int
-    task_id: _builtins.str
-    """任务编号。"""
     reached_goal: _builtins.bool
-    """是否到达任务终点。"""
+    """是否到达路径终点。"""
     elapsed_time_s: _builtins.float
     """实际经过的仿真时间，单位秒。"""
     route_length_m: _builtins.float
-    """任务路径总长度，单位米。"""
+    """路径总长度，单位米。"""
     max_cross_track_error_m: _builtins.float
     """最大横向路径误差，单位米。"""
     rms_cross_track_error_m: _builtins.float
@@ -615,12 +588,11 @@ class SimulationSummary(_message.Message):
 
     @_builtins.property
     def events(self) -> _containers.RepeatedCompositeFieldContainer[Global___SimulationEvent]:
-        """episode 中记录到的任务事件。"""
+        """episode 中记录到的路径事件。"""
 
     def __init__(
         self,
         *,
-        task_id: _builtins.str = ...,
         reached_goal: _builtins.bool = ...,
         elapsed_time_s: _builtins.float = ...,
         route_length_m: _builtins.float = ...,
@@ -631,7 +603,7 @@ class SimulationSummary(_message.Message):
     ) -> None: ...
     _HasFieldArgType: _TypeAlias = _typing.Literal["final_pose", b"final_pose"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["elapsed_time_s", b"elapsed_time_s", "events", b"events", "final_pose", b"final_pose", "max_cross_track_error_m", b"max_cross_track_error_m", "reached_goal", b"reached_goal", "rms_cross_track_error_m", b"rms_cross_track_error_m", "route_length_m", b"route_length_m", "task_id", b"task_id"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["elapsed_time_s", b"elapsed_time_s", "events", b"events", "final_pose", b"final_pose", "max_cross_track_error_m", b"max_cross_track_error_m", "reached_goal", b"reached_goal", "rms_cross_track_error_m", b"rms_cross_track_error_m", "route_length_m", b"route_length_m"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -639,7 +611,7 @@ Global___SimulationSummary: _TypeAlias = SimulationSummary  # noqa: Y015
 
 @_typing.final
 class SimulationEvent(_message.Message):
-    """仿真过程中记录的任务事件。"""
+    """仿真过程中记录的路径事件。"""
 
     DESCRIPTOR: _descriptor.Descriptor
 

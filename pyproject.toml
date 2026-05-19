@@ -11,7 +11,10 @@ dependencies = [
     "grpcio (>=1.80.0,<2.0.0)",
     "protobuf (>=7.34.1,<8.0.0)",
     "pyserial (>=3.5,<4.0)",
-    "typer (>=0.24.1,<0.25.0)"
+    "typer (>=0.24.1,<0.25.0)",
+    "numpy (<2.3)",
+    "scipy (<1.16)",
+    "pydantic (>=2.13.4,<3.0.0)"
 ]
 
 [project.scripts]

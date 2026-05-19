@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from artemis_vicon.simulation.v1 import vehicle_simulation_pb2 as artemis__mudri_dot_simulation_dot_v1_dot_vehicle__simulation__pb2
+from artemis_vicon.protos.simulation.v1 import vehicle_simulation_pb2 as artemis__vicon_dot_protos_dot_simulation_dot_v1_dot_vehicle__simulation__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in artemis_vicon/simulation/v1/vehicle_simulation_pb2_grpc.py depends on'
+        + ' but the generated code in artemis_vicon/protos/simulation/v1/vehicle_simulation_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -37,8 +37,8 @@ class VehicleSimulationServiceStub(object):
         """
         self.StreamEpisode = channel.stream_stream(
                 '/artemis_mudri.simulation.v1.VehicleSimulationService/StreamEpisode',
-                request_serializer=artemis__mudri_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ClientMessage.SerializeToString,
-                response_deserializer=artemis__mudri_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ServerMessage.FromString,
+                request_serializer=artemis__vicon_dot_protos_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ClientMessage.SerializeToString,
+                response_deserializer=artemis__vicon_dot_protos_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ServerMessage.FromString,
                 _registered_method=True)
 
 
@@ -63,8 +63,8 @@ def add_VehicleSimulationServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'StreamEpisode': grpc.stream_stream_rpc_method_handler(
                     servicer.StreamEpisode,
-                    request_deserializer=artemis__mudri_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ClientMessage.FromString,
-                    response_serializer=artemis__mudri_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ServerMessage.SerializeToString,
+                    request_deserializer=artemis__vicon_dot_protos_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ClientMessage.FromString,
+                    response_serializer=artemis__vicon_dot_protos_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ServerMessage.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -93,8 +93,8 @@ class VehicleSimulationService(object):
             request_iterator,
             target,
             '/artemis_mudri.simulation.v1.VehicleSimulationService/StreamEpisode',
-            artemis__mudri_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ClientMessage.SerializeToString,
-            artemis__mudri_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ServerMessage.FromString,
+            artemis__vicon_dot_protos_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ClientMessage.SerializeToString,
+            artemis__vicon_dot_protos_dot_simulation_dot_v1_dot_vehicle__simulation__pb2.ServerMessage.FromString,
             options,
             channel_credentials,
             insecure,

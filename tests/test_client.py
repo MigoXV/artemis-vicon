@@ -1,11 +1,12 @@
 from concurrent import futures
+from pathlib import Path
 import unittest
 
 import grpc
 
-from artemis_vicon.services import run_client
-from artemis_vicon.simulation.v1 import vehicle_simulation_pb2 as pb2
-from artemis_vicon.simulation.v1 import vehicle_simulation_pb2_grpc as pb2_grpc
+from artemis_vicon.client import ArtemisViconClient
+from artemis_vicon.protos.simulation.v1 import vehicle_simulation_pb2 as pb2
+from artemis_vicon.protos.simulation.v1 import vehicle_simulation_pb2_grpc as pb2_grpc
 
 
 class FakeVehicleSimulationService(pb2_grpc.VehicleSimulationServiceServicer):
@@ -15,12 +16,8 @@ class FakeVehicleSimulationService(pb2_grpc.VehicleSimulationServiceServicer):
             yield pb2.ServerMessage(error=pb2.SimulationError(message="start required"))
             return
 
-        task_id = first_message.start.task_id or "1"
         yield pb2.ServerMessage(
             started=pb2.EpisodeStarted(
-                task_id=task_id,
-                label="Task 1",
-                description="Drive from A to B and stop.",
                 time_limit_s=15.0,
                 control_period_s=0.01,
             )
@@ -37,8 +34,7 @@ class FakeVehicleSimulationService(pb2_grpc.VehicleSimulationServiceServicer):
                     error=0.0,
                 ),
                 imu=pb2.ImuFrame(yaw_deg=0.0, yaw_rate_deg_s=0.0),
-                task_progress=pb2.TaskProgressFrame(
-                    task_id=task_id,
+                path_progress=pb2.PathProgressFrame(
                     active_segment_index=0,
                     completed_event_count=0,
                     completed_events=[],
@@ -64,7 +60,6 @@ class FakeVehicleSimulationService(pb2_grpc.VehicleSimulationServiceServicer):
             finished=pb2.EpisodeFinished(
                 reason="goal_reached",
                 summary=pb2.SimulationSummary(
-                    task_id=task_id,
                     reached_goal=True,
                     elapsed_time_s=0.01,
                     route_length_m=1.0,
@@ -87,16 +82,16 @@ def create_fake_grpc_server() -> grpc.Server:
 
 
 class ArtemisViconClientTest(unittest.TestCase):
-    def test_m0_firmware_client_finishes_task1_against_in_process_service(self) -> None:
+    def test_m0_client_finishes_task1_against_in_process_service(self) -> None:
         server = create_fake_grpc_server()
         port = server.add_insecure_port("127.0.0.1:0")
         server.start()
         try:
-            result = run_client(
+            result = ArtemisViconClient(
                 target=f"127.0.0.1:{port}",
-                task_id="1",
+                task_path=Path("examples/m0/task1.json"),
                 max_time_s=6.0,
-            )
+            ).run()
         finally:
             server.stop(0)
         self.assertEqual(result.reason, "goal_reached")

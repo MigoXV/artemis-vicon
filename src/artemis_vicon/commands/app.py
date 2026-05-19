@@ -2,11 +2,12 @@ from __future__ import annotations
 """自动行驶小车客户端服务 CLI。"""
 
 import logging
+from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from artemis_vicon.services import run_client
+from artemis_vicon.client import ArtemisViconClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -21,22 +22,20 @@ app = typer.Typer(add_completion=False, help="运行自动行驶小车 gRPC 客�
 def main(
     target: Annotated[
         str,
-        typer.Option(
-            "--target",
+        typer.Argument(
             help="仿真服务地址。",
             envvar="ARTEMIS_SIM_TARGET",
             show_envvar=True,
         ),
-    ] = "127.0.0.1:50051",
-    task: Annotated[
-        str,
-        typer.Option(
-            "--task",
-            help="要运行的任务编号，支持 0-4。",
-            envvar="ARTEMIS_TASK",
+    ],
+    task_path: Annotated[
+        Path,
+        typer.Argument(
+            help="本地任务动作 JSON 文件路径。",
+            envvar="ARTEMIS_TASK_PATH",
             show_envvar=True,
         ),
-    ] = "1",
+    ],
     max_time: Annotated[
         float | None,
         typer.Option(
@@ -59,38 +58,27 @@ def main(
         int | None,
         typer.Option(
             "--seed",
-            help="初始航向随机扰动种子。",
+            help="传给服务端用于 episode/noise 复现的随机种子。",
             envvar="ARTEMIS_RANDOM_SEED",
             show_envvar=True,
         ),
     ] = None,
-    initial_yaw_noise: Annotated[
-        float,
-        typer.Option(
-            "--initial-yaw-noise",
-            help="初始航向均匀扰动范围，单位度。",
-            envvar="ARTEMIS_INITIAL_YAW_NOISE_DEG",
-            show_envvar=True,
-        ),
-    ] = 5.0,
 ) -> None:
-    """连接仿真服务并运行 artemis-m0 风格小车固件控制器。"""
+    """连接仿真服务并运行 artemis-m0 风格小车任务控制器。"""
 
     logger.info(
-        "Starting artemis-vicon client target=%s task=%s seed=%s yaw_noise=%s",
+        "Starting artemis-vicon client target=%s task=%s seed=%s",
         target,
-        task,
+        task_path,
         random_seed,
-        initial_yaw_noise,
     )
-    result = run_client(
+    result = ArtemisViconClient(
         target=target,
-        task_id=task,
+        task_path=task_path,
         max_time_s=max_time,
         control_period_s=control_period,
         random_seed=random_seed,
-        initial_yaw_noise_deg=initial_yaw_noise,
-    )
+    ).run()
     typer.echo(f"Finished: reason={result.reason} reached_goal={result.reached_goal} elapsed={result.elapsed_time_s:.3f}s")
 
 

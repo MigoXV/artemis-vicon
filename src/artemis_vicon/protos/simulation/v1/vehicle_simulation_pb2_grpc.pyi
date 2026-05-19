@@ -3,7 +3,7 @@
 isort:skip_file
 """
 
-from artemis_vicon.simulation.v1 import vehicle_simulation_pb2 as _vehicle_simulation_pb2
+from artemis_vicon.protos.simulation.v1 import vehicle_simulation_pb2 as _vehicle_simulation_pb2
 from collections import abc as _abc
 from grpc import aio as _aio
 import abc as _abc_1
