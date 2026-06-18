@@ -14,7 +14,9 @@ dependencies = [
     "typer (>=0.24.1,<0.25.0)",
     "numpy (<2.3)",
     "scipy (<1.16)",
-    "pydantic (>=2.13.4,<3.0.0)"
+    "pydantic (>=2.13.4,<3.0.0)",
+    "omegaconf (>=2.3.0,<3.0.0)",
+    "pyzmq (>=27.0.0,<28.0.0)"
 ]
 
 [project.scripts]

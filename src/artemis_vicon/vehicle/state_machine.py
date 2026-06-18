@@ -60,10 +60,16 @@ class MissionStateMachine:
     line_detect_confirm_frames = 2
     line_loss_confirm_frames = 50
 
-    def __init__(self, actions: tuple[TaskAction, ...]) -> None:
+    def __init__(
+        self,
+        actions: tuple[TaskAction, ...],
+        *,
+        line_tracker: LineTrackController | None = None,
+        yaw: YawHoldController | None = None,
+    ) -> None:
         self.actions = actions
-        self.line_tracker = LineTrackController()
-        self.yaw = YawHoldController()
+        self.line_tracker = line_tracker or LineTrackController()
+        self.yaw = yaw or YawHoldController()
         self.motion = MotionController()
         self.base_yaw_deg: float | None = None
         self.action_index = 0

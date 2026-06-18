@@ -1,15 +1,19 @@
 # Artemis Vicon
 
-`artemis-vicon` 是 `artemis-m0` 小车控制逻辑的 Python/gRPC 客户端。仿真服务由 `artemis-mudri` 提供，本项目负责接收仿真观测帧，按 m0 任务语义计算 `Velocity`、`Turn`、左右后轮目标速度和电机模式，再通过 gRPC 流回传控制命令。
+`artemis-vicon` 是面向自动行驶小车的控制器运行时。当前主线用于连接 `artemis-mudri` 提供的仿真 ABI：控制器接收观测帧，按 artemis-m0 任务语义计算左右后轮目标速度，并通过 ZeroMQ JSON ABI 推进仿真 episode。
+
+本项目不负责 MuJoCo 仿真、赛道几何、传感器噪声或 viewer。`artemis-mudri` 负责环境和 episode 生命周期，`artemis-vicon` 负责任务动作、巡线、航向保持、运动命令合成和控制循环。
+
+gRPC 运行依赖仍然保留，用于后续接入强化学习引擎或其它外部引擎；但当前 `artemis-mudri` 仿真服务不再通过 gRPC 连接，旧的 mudri gRPC simulation proto 绑定已移除。
 
 ## 功能
 
-- `artemis_vicon.controllers` 提供通用 PID 控制算法。
-- `artemis_vicon.schemas` 保存观测帧、控制命令、任务动作和电机模式等数据结构。
-- `artemis_vicon.vehicle` 提供 8 路循迹、Yaw 航向保持、动作状态机和左右后轮命令合成等小车业务控制器。
-- `artemis_vicon.client` 封装 gRPC 客户端，负责连接仿真服务、维护双向流、转换观测帧和控制命令。
+- `artemis_vicon.vehicle` 提供 8 路循迹、Yaw 航向保持、动作状态机和左右后轮命令合成。
+- `artemis_vicon.controllers` 提供通用 PID/LQR 控制算法。
+- `artemis_vicon.engine` 定义外部引擎边界，并提供当前可用的 `mudri_zmq` 实现。
+- `artemis_vicon.config` 使用 OmegaConf 加载显式 YAML 模型配置。
+- `artemis_vicon.client` 负责装配控制器、连接引擎并运行 episode。
 - `artemis_vicon.commands.app` 提供 Typer CLI 入口。
-- `artemis_vicon.protos.simulation.v1` 保存和 `artemis-mudri` 对接的 protobuf 定义及生成代码。
 - `examples/m0` 保存 artemis-m0 task0-4 的 JSON 动作序列。
 - 保留 `pyserial` 依赖，供后续接入真实电机驱动板串口协议。
 
@@ -19,53 +23,88 @@
 poetry install
 ```
 
-## 生成 Proto 代码
-
-```bash
-bash scripts/run_grpcio_tools.sh
-```
-
-脚本会使用 Poetry 环境运行 `grpcio-tools`，并生成 `*_pb2.py`、`*_pb2.pyi`、`*_pb2_grpc.py` 和 `*_pb2_grpc.pyi`。
-
 ## 运行
 
-先在 `artemis-mudri` 中启动仿真服务：
+先在 `artemis-mudri` 中启动 ZMQ JSON 仿真服务：
 
 ```bash
-poetry run python -m artemis_mudri.commands.app serve --host 127.0.0.1 --port 50051 --no-render
+poetry run python -m artemis_mudri.commands.app serve --bind tcp://127.0.0.1:5556 --no-render
 ```
 
-如需启用服务端现实噪声，在 `artemis-mudri` 中通过 `--noise-config` 指定噪声配置：
+在本项目中显式指定 YAML 配置运行控制器：
 
 ```bash
-poetry run python -m artemis_mudri.commands.app serve \
-  --host 127.0.0.1 \
-  --port 50051 \
-  --no-render \
-  --noise-config exampes/configs/noise/weak.yaml
+poetry run artemis-vicon --config examples/configs/mudri_model.yaml
 ```
 
-再在本项目中启动客户端：
+也可以使用模块入口：
 
 ```bash
-poetry run python -m artemis_vicon.commands.app 127.0.0.1:50051 examples/m0/task1.json --seed 7
+poetry run python -m artemis_vicon.commands.app --config examples/configs/mudri_model.yaml
 ```
 
-也可以使用脚本入口：
+## 模型配置
 
-```bash
-poetry run artemis-vicon 127.0.0.1:50051 examples/m0/task1.json --seed 7
+模型配置通过 `--config` 或 `CONFIG_PATH` 指定。VS Code 调试时会读取 `.env`，因此 `.env` 里至少需要提供模型配置文件路径、仿真服务地址和 m0 任务路径：
+
+```env
+CONFIG_PATH=examples/configs/mudri_model.yaml
+ARTEMIS_MUDRI_ENDPOINT=tcp://127.0.0.1:5556
+ARTEMIS_M0_TASK_PATH=examples/m0/task1.json
 ```
 
-## 配置
+示例：
 
-- `ARTEMIS_SIM_TARGET`：仿真服务地址，默认 `127.0.0.1:50051`。
-- `ARTEMIS_TASK_PATH`：本地任务动作 JSON 文件路径，默认 `examples/m0/task1.json`；该值不会发送给仿真服务。
-- `ARTEMIS_MAX_TIME_S`：任务时间上限。
-- `ARTEMIS_CONTROL_PERIOD_S`：控制周期，默认 `0.02` 秒。
-- `ARTEMIS_RANDOM_SEED`：传给服务端用于 episode/noise 复现的随机种子。
+```yaml
+engine:
+  kind: mudri_zmq
+  endpoint: ${oc.env:ARTEMIS_MUDRI_ENDPOINT,tcp://127.0.0.1:5556}
 
-噪声参数不再由 `artemis-vicon` 通过 gRPC 请求单独指定。新版 `artemis-mudri` 统一在服务端通过 `--noise-config` 或 `ARTEMIS_NOISE_CONFIG` 加载初始位姿、巡线传感器、IMU、编码器和执行器噪声配置；客户端只发送 seed、控制周期、时间上限和控制命令。
+start:
+  max_time_s: 120
+  control_period_s: 0.02
+  initial_pose: null
+  initial_progress_index: 0
+  random_seed: null
+
+controller:
+  task_path: ${oc.env:ARTEMIS_M0_TASK_PATH}
+  line_sensor_darkness_threshold: 0.55
+  line_tracking_pid:
+    ki: 0.0
+    kp: 25.0
+    kd: 3.5
+    output_limit: null
+  yaw_hold_pid:
+    ki: 0.0
+    kp: 0.3
+    kd: 0.015
+    output_limit: null
+```
+
+`controller.task_path` 不提供默认值，缺少 `ARTEMIS_M0_TASK_PATH` 时配置加载会失败。`line_tracking_pid` 和 `yaw_hold_pid` 默认值与当前控制器代码原始参数一致，可以在 YAML 中显式调整。
+
+`engine.kind` 当前支持：
+
+- `mudri_zmq`：连接 `artemis-mudri` 的 ZeroMQ JSON ABI。
+- `grpc`：未来外部 gRPC 引擎占位入口；当前会明确报错，因为强化学习或其它 gRPC 引擎 ABI 尚未定义。
+
+`start` 字段会透传给 `artemis-mudri` 的 `start` 请求。服务端噪声配置仍由 `artemis-mudri` 通过 `--noise-config` 或 `ARTEMIS_NOISE_CONFIG` 管理，当前模型配置不承载噪声模型。
+
+## ABI 映射
+
+`artemis-vicon` 从 `mudri` observation 中提取控制器需要的最小观测：
+
+- `sequence_id` 和 `sim_time_s` 直接使用 ABI 字段。
+- `yaw_deg` 来自 `imu.yaw_deg`。
+- `digital_values` 优先使用 `line_sensor.digital`；缺失时使用 `line_sensor_darkness >= line_sensor_darkness_threshold` 计算。
+- `forward_distance_cm` 来自 `encoder.forward_distance_cm`，不再由客户端根据 kinematics 自行积分。
+
+控制器输出只编码为 `step` 请求中的：
+
+- `sequence_id`
+- `rear_left_target_speed`
+- `rear_right_target_speed`
 
 ## 测试
 

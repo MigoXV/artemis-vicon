@@ -1,0 +1,24 @@
+engine:
+  kind: mudri_zmq
+  endpoint: ${oc.env:ARTEMIS_MUDRI_ENDPOINT,tcp://127.0.0.1:5556}
+
+start:
+  max_time_s: 120
+  control_period_s: 0.02
+  initial_pose: null
+  initial_progress_index: 0
+  random_seed: null
+
+controller:
+  task_path: ${oc.env:ARTEMIS_M0_TASK_PATH}
+  line_sensor_darkness_threshold: 0.55
+  line_tracking_pid:
+    ki: 0.0
+    kp: 25.0
+    kd: 3.5
+    output_limit: null
+  yaw_hold_pid:
+    ki: 0.0
+    kp: 0.3
+    kd: 0.015
+    output_limit: null
