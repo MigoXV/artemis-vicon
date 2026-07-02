@@ -24,9 +24,10 @@ def main(
         str,
         typer.Option("--port", "-p", envvar="ARTEMIS_SERIAL_PORT", show_envvar=True, help="MCU serial port."),
     ],
-    endpoint: Annotated[
+    engine_endpoint: Annotated[
         str,
         typer.Option(
+            "--engine-endpoint",
             "--endpoint",
             "-e",
             envvar="ARTEMIS_MUDRI_ENDPOINT",
@@ -44,7 +45,12 @@ def main(
     ] = 0.1,
     line_sensor_darkness_threshold: Annotated[
         float,
-        typer.Option("--line-sensor-darkness-threshold", help="Fallback threshold for Mudri darkness arrays."),
+        typer.Option(
+            "--line-sensor-darkness-threshold",
+            envvar="ARTEMIS_LINE_SENSOR_DARKNESS_THRESHOLD",
+            show_envvar=True,
+            help="Fallback threshold for Mudri darkness arrays.",
+        ),
     ] = 0.55,
 ) -> None:
     """Run the serial bridge."""
@@ -54,7 +60,7 @@ def main(
     except ImportError as exc:
         raise RuntimeError("pyserial is required. Install dependencies with `poetry install`.") from exc
 
-    logger.info("Starting serial bridge port=%s baudrate=%s endpoint=%s", port, baudrate, endpoint)
+    logger.info("Starting serial bridge port=%s baudrate=%s engine_endpoint=%s", port, baudrate, engine_endpoint)
     serial_stream = serial.Serial(
         port=port,
         baudrate=baudrate,
@@ -62,7 +68,7 @@ def main(
         write_timeout=timeout_s,
     )
     bridge = SerialMudriBridge(
-        engine_client=MudriZmqEngineClient(endpoint),
+        engine_client=MudriZmqEngineClient(engine_endpoint),
         serial_stream=serial_stream,
         adapter=MudriObservationAdapter(line_sensor_darkness_threshold=line_sensor_darkness_threshold),
     )

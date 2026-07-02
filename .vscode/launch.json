@@ -9,6 +9,27 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "envFile": "${workspaceFolder}/.env",
+        },
+        {
+            "name": "Python: Serial Bridge Module",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "artemis_vicon.commands.serial_bridge",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                "--port",
+                "${input:artemisSerialPort}"
+            ],
+        }
+    ],
+    "inputs": [
+        {
+            "id": "artemisSerialPort",
+            "type": "promptString",
+            "description": "MCU serial port for artemis-vicon serial bridge",
+            "default": "COM3"
         }
     ]
 }
