@@ -19,19 +19,20 @@ from artemis_vicon.schemas import ControlCommand, MotorMode
 
 class ConfigTest(unittest.TestCase):
     def test_load_run_config_requires_yaml_file(self) -> None:
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml", encoding="utf-8") as file:
-            file.write(
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(
                 """
 engine:
   kind: mudri_zmq
   endpoint: tcp://127.0.0.1:5556
 controller:
   task_path: examples/m0/task1.json
-"""
+""",
+                encoding="utf-8",
             )
-            file.flush()
 
-            config = load_run_config(Path(file.name))
+            config = load_run_config(path)
 
         self.assertEqual(config.engine.kind, "mudri_zmq")
         self.assertEqual(config.engine.endpoint, "tcp://127.0.0.1:5556")
@@ -39,8 +40,9 @@ controller:
         self.assertEqual(config.start.control_period_s, 0.02)
 
     def test_load_run_config_resolves_task_path_from_environment(self) -> None:
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml", encoding="utf-8") as file:
-            file.write(
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(
                 """
 engine:
   kind: mudri_zmq
@@ -55,12 +57,12 @@ controller:
     ki: 0.0
     kp: 0.4
     kd: 0.02
-"""
+""",
+                encoding="utf-8",
             )
-            file.flush()
 
             with patch.dict(os.environ, {"ARTEMIS_M0_TASK_PATH": "examples/m0/task3.json"}):
-                config = load_run_config(Path(file.name))
+                config = load_run_config(path)
 
         self.assertEqual(config.controller.task_path, Path("examples/m0/task3.json"))
         self.assertEqual(config.controller.line_tracking_pid.ki, 0.1)
@@ -69,22 +71,23 @@ controller:
         self.assertEqual(config.controller.yaw_hold_pid.kp, 0.4)
 
     def test_load_run_config_rejects_missing_task_path_environment(self) -> None:
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml", encoding="utf-8") as file:
-            file.write(
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(
                 """
 engine:
   kind: mudri_zmq
   endpoint: tcp://127.0.0.1:5556
 controller:
   task_path: ${oc.env:ARTEMIS_M0_TASK_PATH}
-"""
+""",
+                encoding="utf-8",
             )
-            file.flush()
 
             with patch.dict(os.environ, {}, clear=False):
                 os.environ.pop("ARTEMIS_M0_TASK_PATH", None)
                 with self.assertRaises(Exception):
-                    load_run_config(Path(file.name))
+                    load_run_config(path)
 
     def test_grpc_engine_is_explicit_placeholder(self) -> None:
         with self.assertRaisesRegex(NotImplementedError, "gRPC external engine ABI is not defined yet"):
@@ -162,8 +165,9 @@ class MudriZmqEngineClientTest(unittest.TestCase):
         )
 
     def test_zmq_client_runs_start_step_stop_over_request_socket(self) -> None:
-        with tempfile.NamedTemporaryFile("w", suffix=".json", encoding="utf-8") as task_file:
-            task_file.write(
+        with tempfile.TemporaryDirectory() as directory:
+            task_path = Path(directory) / "task.json"
+            task_path.write_text(
                 """
 {
   "actions": [
@@ -171,9 +175,9 @@ class MudriZmqEngineClientTest(unittest.TestCase):
     {"kind": "finish"}
   ]
 }
-"""
+""",
+                encoding="utf-8",
             )
-            task_file.flush()
             socket = FakeSocket(
                 [
                     {
@@ -192,7 +196,7 @@ class MudriZmqEngineClientTest(unittest.TestCase):
                 ]
             )
             client = ArtemisViconClient(
-                config=_run_config(task_path=Path(task_file.name)),
+                config=_run_config(task_path=task_path),
                 engine_client=MudriZmqEngineClient("inproc://test", socket_factory=lambda: socket),
             )
 

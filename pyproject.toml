@@ -21,6 +21,7 @@ dependencies = [
 
 [project.scripts]
 artemis-vicon = "artemis_vicon.commands.app:app"
+artemis-vicon-serial-bridge = "artemis_vicon.commands.serial_bridge:app"
 
 [tool.poetry]
 packages = [{include = "artemis_vicon", from = "src"}]
