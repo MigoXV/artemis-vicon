@@ -18,18 +18,6 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "envFile": "${workspaceFolder}/.env",
-            "args": [
-                "--port",
-                "${input:artemisSerialPort}"
-            ],
-        }
-    ],
-    "inputs": [
-        {
-            "id": "artemisSerialPort",
-            "type": "promptString",
-            "description": "MCU serial port for artemis-vicon serial bridge",
-            "default": "COM3"
         }
     ]
 }

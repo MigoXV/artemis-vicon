@@ -11,7 +11,7 @@ start:
 
 controller:
   task_path: ${oc.env:ARTEMIS_M0_TASK_PATH}
-  line_sensor_darkness_threshold: ${oc.env:ARTEMIS_LINE_SENSOR_DARKNESS_THRESHOLD,0.55}
+  line_sensor_darkness_threshold: 0.55
   line_tracking_pid:
     ki: 0.0
     kp: 25.0

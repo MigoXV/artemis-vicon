@@ -59,7 +59,6 @@ poetry run artemis-vicon-serial-bridge --port COM3 --baudrate 115200 --engine-en
 ARTEMIS_SERIAL_PORT=COM3
 ARTEMIS_SERIAL_BAUDRATE=115200
 ARTEMIS_MUDRI_ENDPOINT=tcp://127.0.0.1:5556
-ARTEMIS_LINE_SENSOR_DARKNESS_THRESHOLD=0.55
 ```
 
 串口协议采用换行结尾的 ASCII 文本，便于 MCU 调试和示波器/串口助手排查：
@@ -89,7 +88,6 @@ ERR message=unknown_command:_PING
 CONFIG_PATH=examples/configs/mudri_model.yaml
 ARTEMIS_MUDRI_ENDPOINT=tcp://127.0.0.1:5556
 ARTEMIS_M0_TASK_PATH=examples/m0/task1.json
-ARTEMIS_LINE_SENSOR_DARKNESS_THRESHOLD=0.55
 ```
 
 示例：
@@ -108,7 +106,7 @@ start:
 
 controller:
   task_path: ${oc.env:ARTEMIS_M0_TASK_PATH}
-  line_sensor_darkness_threshold: ${oc.env:ARTEMIS_LINE_SENSOR_DARKNESS_THRESHOLD,0.55}
+  line_sensor_darkness_threshold: 0.55
   line_tracking_pid:
     ki: 0.0
     kp: 25.0
