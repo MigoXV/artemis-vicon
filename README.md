@@ -43,6 +43,43 @@ poetry run artemis-vicon --config examples/configs/mudri_model.yaml
 poetry run python -m artemis_vicon.commands.app --config examples/configs/mudri_model.yaml
 ```
 
+### MCU 串口桥接
+
+`artemis-vicon-serial-bridge` 用作单片机和 `artemis-mudri` 之间的桥接程序：下层通过 `pyserial` 读取 MCU 串口行协议，上层复用 `mudri_zmq` 客户端访问 `artemis-mudri` 的 ZeroMQ JSON ABI。
+
+先启动 `artemis-mudri` ZMQ JSON 服务，然后启动桥接：
+
+```bash
+poetry run artemis-vicon-serial-bridge --port COM3 --baudrate 115200 --engine-endpoint tcp://127.0.0.1:5556
+```
+
+也可以通过环境变量配置：
+
+```env
+ARTEMIS_SERIAL_PORT=COM3
+ARTEMIS_SERIAL_BAUDRATE=115200
+ARTEMIS_MUDRI_ENDPOINT=tcp://127.0.0.1:5556
+```
+
+串口协议采用换行结尾的 ASCII 文本，便于 MCU 调试和示波器/串口助手排查：
+
+```text
+START max_time_s=120 control_period_s=0.02
+STEP 0 7.0 7.0
+STOP task_completed
+```
+
+桥接响应同样是一行 ASCII：
+
+```text
+STARTED time_limit_s=120 control_period_s=0.02 seq=0 t=0 yaw=0 distance_cm=0 digital=00000000
+OBS seq=1 t=0.02 yaw=0.1 distance_cm=1.2 digital=00111100
+FINISHED reason=task_completed reached_goal=1 elapsed_time_s=3.42
+ERR message=unknown_command:_PING
+```
+
+`STEP` 会被桥接为 `artemis-mudri` 的 `step` 请求，其中三个位置参数分别是 `sequence_id`、`rear_left_target_speed`、`rear_right_target_speed`。也支持键值形式：`STEP seq=0 left=7.0 right=7.0`。
+
 ## 模型配置
 
 模型配置通过 `--config` 或 `CONFIG_PATH` 指定。VS Code 调试时会读取 `.env`，因此 `.env` 里至少需要提供模型配置文件路径、仿真服务地址和 m0 任务路径：
